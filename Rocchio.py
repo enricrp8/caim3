@@ -7,8 +7,8 @@ from elasticsearch_dsl.query import Q
 nrounds = 3
 k = 1
 R = 10
-alpha = 0.3
-beta = 0.7
+alpha = 1232
+beta = 1231
 
 if __name__ == '__main__':
     index = input("Index to serach:\n")
