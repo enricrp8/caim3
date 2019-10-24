@@ -4,6 +4,11 @@ from elasticsearch.exceptions import NotFoundError
 from elasticsearch_dsl import Search
 from elasticsearch_dsl.query import Q
 
+nrounds = 3
+k = 1
+R = 10
+alpha = 0.3
+beta = 0.7
 
 if __name__ == '__main__':
     index = input("Index to serach:\n")
