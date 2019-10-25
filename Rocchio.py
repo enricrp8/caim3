@@ -17,7 +17,7 @@ beta = 0.2
 words = {}
 
 
-def get_query_from_tw(v):
+def fill_dicc_from_tw(v):
     for w in words:
         words[w] *= alpha
 
@@ -26,10 +26,6 @@ def get_query_from_tw(v):
             words[t] += beta * w
         else:
             words[t] = beta * w
-
-    q = Q('query_string', query="")
-    for w in words:
-        q &= Q('query_string', query=f'{w}^{words[w]}')
 
 
 def doc_count(client, index):
@@ -74,7 +70,11 @@ def toTFIDF(client, index, file_id):
     for (t, w), (_, df) in zip(file_tv, file_df):
         tfidfw.append((t, calculateW(w, max_freq, df, dcount)))
 
-    return normalize(tfidfw)
+    tfidfwN = normalize(tfidfw)
+    # Ara omplim el diccionari
+
+    #
+    return tfidfwN
 
 
 def normalize(tw):
@@ -106,9 +106,8 @@ if __name__ == '__main__':
     #             response = s[0:k].execute()
     #             for r in response:
     #                 file_id = r.meta.id
-
     #                 file_tw = toTFIDF(client, index, file_id)
-
+    #             Un cop fet tot els weight vectors, fem la cria dels R majors (pensar si fer-ho amb vectors o no)
     #         else:
     #             print('No query parameters passed')
 
