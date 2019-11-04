@@ -147,8 +147,10 @@ if __name__ == '__main__':
                                 tw[index] = (t, tw[index][1] + w)
                     tw.sort(key=operator.itemgetter(1), reverse=True)
                     fill_dicc_from_tw(tw[0:R])
-                    queries = [w for w in words]
-                    print(queries)
+                    # print([(t, words[t]) for t in words])
+                    print(tw[0:R])
+                    queries = [t for t in words]
+                    # print(queries)
             else:
                 print('No query parameters passed')
 
