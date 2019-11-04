@@ -9,7 +9,7 @@ import math
 import numpy as np
 
 nrounds = 3
-k = 300
+k = 3
 R = 10
 alpha = 0.8
 beta = 0.2
@@ -17,15 +17,55 @@ beta = 0.2
 words = {}
 
 
-def fill_dicc_from_tw(v):
-    for w in words:
-        words[w] *= alpha
-
-    for t, w in v:
-        if t in words:
-            words[t] += beta * w
+def dico_search(x, v, l, r):
+    if r >= l:
+        mid = int(l + (r - l)/2)
+        if(v[mid][0] == x):
+            return mid
+        elif(v[mid][0] > x):
+            return dico_search(x, v, l, mid-1)
         else:
-            words[t] = beta * w
+            return dico_search(x, v, mid+1, r)
+    else:
+        return -1
+
+
+def search_file_by_path(client, index, path):
+    """
+    Search for a file using its path
+
+    :param path:
+    :return:
+    """
+    s = Search(using=client, index=index)
+    q = Q('match', path=path)  # exact search in the path field
+    s = s.query(q)
+    result = s.execute()
+
+    lfiles = [r for r in result]
+    if len(lfiles) == 0:
+        raise NameError(f'File [{path}] not found')
+    else:
+        return lfiles[0].meta.id
+
+
+def search_file_by_path(client, index, path):
+    """
+    Search for a file using its path
+
+    :param path:
+    :return:
+    """
+    s = Search(using=client, index=index)
+    q = Q('match', path=path)  # exact search in the path field
+    s = s.query(q)
+    result = s.execute()
+
+    lfiles = [r for r in result]
+    if len(lfiles) == 0:
+        raise NameError(f'File [{path}] not found')
+    else:
+        return lfiles[0].meta.id
 
 
 def doc_count(client, index):
@@ -71,9 +111,6 @@ def toTFIDF(client, index, file_id):
         tfidfw.append((t, calculateW(w, max_freq, df, dcount)))
 
     tfidfwN = normalize(tfidfw)
-    # Ara omplim el diccionari
-
-    #
     return tfidfwN
 
 
@@ -85,35 +122,42 @@ def normalize(tw):
 
 
 if __name__ == '__main__':
-    # index = input("Index to serach:\n")
-    # index = "news"
+    index = "news"
 
-    # if index.strip() != "":
+    if index.strip() != "":
 
-    #     # queries = input("Write the words to query:\n").split(' ')
-    #     queries = ['toronto']
+        # queries = input("Write the words to query:\n").split(' ')
+        queries = ['toronto']
 
-    #     try:
-    #         client = Elasticsearch()
-    #         s = Search(using=client, index=index)
+        try:
+            client = Elasticsearch()
+            s = Search(using=client, index=index)
 
-    #         if len(queries) != 0:
-    #             q = Q('query_string', query=queries[0])
-    #             for i in range(1, len(queries)):
-    #                 q &= Q('query_string', query=queries[i])
+            if len(queries) != 0:
+                q = Q('query_string', query=queries[0])
+                for i in range(1, len(queries)):
+                    q &= Q('query_string', query=queries[i])
 
-    #             s = s.query(q)
-    #             response = s[0:k].execute()
-    #             for r in response:
-    #                 file_id = r.meta.id
-    #                 file_tw = toTFIDF(client, index, file_id)
-    #             Un cop fet tot els weight vectors, fem la cria dels R majors (pensar si fer-ho amb vectors o no)
-    #         else:
-    #             print('No query parameters passed')
+                s = s.query(q)
+                response = s[0:k].execute()
+                tw = []
+                for r in response:
+                    file_id = r.meta.id
+                    file_tw = toTFIDF(client, index, file_id)
+                    for (t, w) in file_tw:
+                        index = dico_search(t, tw, 0, len(tw) - 1)
+                        if index == -1:
+                            tw.append((t, w))
+                        else:
+                            tw[index][1] = tw[index][1] + w
+                    print(tw)
+                print(tw)
+            else:
+                print('No query parameters passed')
 
-    #         print(f"{response.hits.total['value']} Documents")
+            print(f"{response.hits.total['value']} Documents")
 
-    #     except NotFoundError:
-    #         print(f'Index {index} does not exists')
-    # else:
-    #     print("No index entered")
+        except NotFoundError:
+            print(f'Index {index} does not exists')
+    else:
+        print("No index entered")
