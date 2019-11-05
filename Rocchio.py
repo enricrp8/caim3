@@ -8,13 +8,17 @@ import functools
 import math
 import numpy as np
 import operator
+import argparse
+import re
 
 
-nrounds = 3
-k = 3
-R = 10
-alpha = 0.8
-beta = 0.2
+index = ""
+nrounds = 0
+k = 0
+R = 0
+alpha = 0
+beta = 0
+query = []
 
 words = {}
 
@@ -116,46 +120,78 @@ def normalize(tw):
 
 
 if __name__ == '__main__':
-    searchIndex = "news"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--index', default="news", help='Index to search')
+    parser.add_argument('--nrounds', default=3, type=int,
+                        help='Number of hits to return')
+    parser.add_argument('--R', default=6, type=int,
+                        help='Number of words to get from each document')
+    parser.add_argument('--alpha', default=0.8, type=float, help='alpha')
+    parser.add_argument('--beta', default=0.2, type=float, help='beta')
+    parser.add_argument('--k', default=8, type=int,
+                        help='Number of important documents')
+    parser.add_argument('--query', default=[],
+                        nargs=argparse.REMAINDER, help='List of words to search')
 
-    if searchIndex.strip() != "":
+    args = parser.parse_args()
 
-        # queries = input("Write the words to query:\n").split(' ')
-        queries = ['toronto']
+    index = args.index
+    nrounds = args.nrounds
+    R = args.R
+    alpha = args.alpha
+    beta = args.beta
+    k = args.k
+    query = args.query
 
+    if index.strip() != "":
         try:
             client = Elasticsearch()
-            s = Search(using=client, index=searchIndex)
+            s = Search(using=client, index=index)
 
-            if len(queries) != 0:
+            queries = []
+
+            for t in query:
+                importantW = t.split('^')
+                if len(importantW) == 1:
+                    fuzzyW = t.split('~')
+                    if len(fuzzyW) == 1:
+                        words[t] = 1
+                        queries.append(t + str(f'^1'))
+                    else:
+                        words[fuzzyW[0]] = float(fuzzyW[1])
+                        queries.append(t)
+                else:
+                    words[importantW[0]] = float(importantW[1])
+                    queries.append(t)
+
+            if len(query) != 0:
+
                 for i in range(0, nrounds):
+
                     q = Q('query_string', query=queries[0])
                     for i in range(1, len(queries)):
                         q &= Q('query_string', query=queries[i])
-
+                    print(queries)
                     s = s.query(q)
                     response = s[0:k].execute()
-                    tw = []
+                    tw = {}
                     for r in response:
                         file_id = r.meta.id
-                        file_tw = toTFIDF(client, searchIndex, file_id)
+                        file_tw = toTFIDF(client, index, file_id)
                         for (t, w) in file_tw:
-                            index = dico_search(t, tw, 0, len(tw) - 1)
-                            if index == -1:
-                                tw.append((t, w))
+                            if t in tw:
+                                tw[t] = tw[t] + w
                             else:
-                                tw[index] = (t, tw[index][1] + w)
-                    tw.sort(key=operator.itemgetter(1), reverse=True)
-                    fill_dicc_from_tw(tw[0:R])
-                    # print([(t, words[t]) for t in words])
-                    print(tw[0:R])
-                    queries = [t for t in words]
-                    # print(queries)
+                                tw[t] = w
+                    twv = [(t, tw[t]) for t in tw]
+                    twv.sort(
+                        key=operator.itemgetter(1), reverse=True)
+                    fill_dicc_from_tw(twv[0:R])
+                    queries = [(t + str(f'^{words[t]}')) for t in words]
+                    print(queries)
+                    print(f"{response.hits.total['value']} Documents")
             else:
                 print('No query parameters passed')
-
-            print(f"{response.hits.total['value']} Documents")
-
         except NotFoundError:
             print(f'Index {index} does not exists')
     else:
