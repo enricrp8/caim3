@@ -21,6 +21,7 @@ beta = 0
 query = []
 
 words = {}
+operators = {}
 
 
 def fill_dicc_from_tw(v):
@@ -31,20 +32,8 @@ def fill_dicc_from_tw(v):
         if t in words:
             words[t] += (beta/k) * w
         else:
+            operators[t] = '~'
             words[t] = (beta/k) * w
-
-
-def dico_search(x, v, l, r):
-    if r >= l:
-        mid = int(l + (r - l)/2)
-        if(v[mid][0] == x):
-            return mid
-        elif(v[mid][0] > x):
-            return dico_search(x, v, l, mid-1)
-        else:
-            return dico_search(x, v, mid+1, r)
-    else:
-        return -1
 
 
 def search_file_by_path(client, index, path):
@@ -156,12 +145,15 @@ if __name__ == '__main__':
                     fuzzyW = t.split('~')
                     if len(fuzzyW) == 1:
                         words[t] = 1
+                        operators[t] = '^'
                         queries.append(t + str(f'^1'))
                     else:
                         words[fuzzyW[0]] = float(fuzzyW[1])
+                        operators[fuzzyW[0]] = '~'
                         queries.append(t)
                 else:
                     words[importantW[0]] = float(importantW[1])
+                    operators[importantW[0]] = '^'
                     queries.append(t)
 
             if len(query) != 0:
@@ -171,7 +163,6 @@ if __name__ == '__main__':
                     q = Q('query_string', query=queries[0])
                     for i in range(1, len(queries)):
                         q &= Q('query_string', query=queries[i])
-                    print(queries)
                     s = s.query(q)
                     response = s[0:k].execute()
                     tw = {}
@@ -187,7 +178,8 @@ if __name__ == '__main__':
                     twv.sort(
                         key=operator.itemgetter(1), reverse=True)
                     fill_dicc_from_tw(twv[0:R])
-                    queries = [(t + str(f'^{words[t]}')) for t in words]
+                    queries = [(t + str(f'{operators[t]}{words[t]}'))
+                               for t in words]
                     print(queries)
                     print(f"{response.hits.total['value']} Documents")
             else:
