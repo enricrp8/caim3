@@ -21,7 +21,22 @@ beta = 0
 query = []
 
 words = {}
-operators = {}
+
+
+def parseArguments():
+    queries = []
+
+    for t in query:
+        importantW = t.split('^')
+        if len(importantW) == 1:
+            fuzzyW = t.split('~')
+            words[fuzzyW[0]] = 1
+            queries.append(fuzzyW[0])
+        else:
+            words[importantW[0]] = float(importantW[1])
+            queries.append(t)
+        queries.append(t)
+    return queries
 
 
 def fill_dicc_from_tw(v):
@@ -32,7 +47,6 @@ def fill_dicc_from_tw(v):
         if t in words:
             words[t] += (beta/k) * w
         else:
-            operators[t] = '~'
             words[t] = (beta/k) * w
 
 
@@ -139,22 +153,7 @@ if __name__ == '__main__':
 
             queries = []
 
-            for t in query:
-                importantW = t.split('^')
-                if len(importantW) == 1:
-                    fuzzyW = t.split('~')
-                    if len(fuzzyW) == 1:
-                        words[t] = 1
-                        operators[t] = '^'
-                        queries.append(t + str(f'^1'))
-                    else:
-                        words[fuzzyW[0]] = float(fuzzyW[1])
-                        operators[fuzzyW[0]] = '~'
-                        queries.append(t)
-                else:
-                    words[importantW[0]] = float(importantW[1])
-                    operators[importantW[0]] = '^'
-                    queries.append(t)
+            queries = parseArguments()
 
             if len(query) != 0:
 
@@ -163,9 +162,12 @@ if __name__ == '__main__':
                     q = Q('query_string', query=queries[0])
                     for i in range(1, len(queries)):
                         q &= Q('query_string', query=queries[i])
+
                     s = s.query(q)
                     response = s[0:k].execute()
+
                     tw = {}
+
                     for r in response:
                         file_id = r.meta.id
                         file_tw = toTFIDF(client, index, file_id)
@@ -174,12 +176,16 @@ if __name__ == '__main__':
                                 tw[t] = tw[t] + w
                             else:
                                 tw[t] = w
+
                     twv = [(t, tw[t]) for t in tw]
                     twv.sort(
                         key=operator.itemgetter(1), reverse=True)
+
                     fill_dicc_from_tw(twv[0:R])
-                    queries = [(t + str(f'{operators[t]}{words[t]}'))
+
+                    queries = [(t + str(f'^{words[t]}'))
                                for t in words]
+
                     print(queries)
                     print(f"{response.hits.total['value']} Documents")
             else:
