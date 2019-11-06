@@ -36,6 +36,7 @@ def parseArguments():
             words[importantW[0]] = float(importantW[1])
             queries.append(t)
         queries.append(t)
+
     return queries
 
 
