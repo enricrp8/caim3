@@ -35,7 +35,6 @@ def parseArguments():
         else:
             words[importantW[0]] = float(importantW[1])
             queries.append(t)
-        queries.append(t)
 
     return queries
 
@@ -160,6 +159,8 @@ if __name__ == '__main__':
 
                 for i in range(0, nrounds):
 
+                    print(queries)
+
                     q = Q('query_string', query=queries[0])
                     for i in range(1, len(queries)):
                         q &= Q('query_string', query=queries[i])
@@ -187,7 +188,6 @@ if __name__ == '__main__':
                     queries = [(t + str(f'^{words[t]}'))
                                for t in words]
 
-                    print(queries)
                     print(f"{response.hits.total['value']} Documents")
             else:
                 print('No query parameters passed')
