@@ -127,7 +127,7 @@ if __name__ == '__main__':
     parser.add_argument('--index', default="news", help='Index to search')
     parser.add_argument('--nrounds', default=3, type=int,
                         help='Number of hits to return')
-    parser.add_argument('--R', default=6, type=int,
+    parser.add_argument('--R', default=4, type=int,
                         help='Number of words to get from each document')
     parser.add_argument('--alpha', default=0.8, type=float, help='alpha')
     parser.add_argument('--beta', default=0.2, type=float, help='beta')
